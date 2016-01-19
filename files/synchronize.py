@@ -164,6 +164,11 @@ options:
     default: no
     required: false
     version_added: "2.0"
+  rsync_ssh_pass:
+    description:
+      - pass ssh password automatically
+    default: no
+    required: false
 notes:
    - rsync must be installed on both the local and remote host.
    - For the C(synchronize) module, the "local host" is the host `the synchronize task originates on`, and the "destination host" is the host `synchronize is connecting to`.
@@ -261,6 +266,7 @@ def main():
             partial = dict(default='no', type='bool'),
             verify_host = dict(default='no', type='bool'),
             mode = dict(default='push', choices=['push', 'pull']),
+            rsync_ssh_pass = dict(required=False, default=None, no_log=True),
         ),
         supports_check_mode = True
     )
@@ -290,6 +296,7 @@ def main():
     rsync_opts = module.params['rsync_opts']
     ssh_args = module.params['ssh_args']
     verify_host = module.params['verify_host']
+    rsync_ssh_pass = module.params['rsync_ssh_pass']
 
     cmd = '%s --delay-updates -F' % rsync
     if compress:
@@ -351,9 +358,9 @@ def main():
       ssh_opts = '%s %s' % (ssh_opts, ssh_args)
 
     if dest_port != 22:
-        cmd += " --rsh 'ssh %s %s -o Port=%s'" % (private_key, ssh_opts, dest_port)
+        cmd += " --rsh 'sshpass -p%s ssh %s %s -o Port=%s'" % (rsync_ssh_pass, private_key, ssh_opts, dest_port)
     else:
-        cmd += " --rsh 'ssh %s %s'" % (private_key, ssh_opts)  # need ssh param
+        cmd += " --rsh 'sshpass -p%s ssh %s %s'" % (rsync_ssh_pass, private_key, ssh_opts)  # need ssh param
 
     if rsync_path:
         cmd = cmd + " --rsync-path=%s" % (rsync_path)
